@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jarvis • Glass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Nunito", sans-serif;
+      background: radial-gradient(circle at top, rgba(10,132,255,0.2) 0%, #000 80%);
+      color: white;
+      overflow: hidden;
+    }
+    .app {
+      width: 600px;
+      max-width: 95%;
+      min-height: 600px;
+      max-height: 85vh;
+      height: 85vh;
+      background: rgba(255,255,255,0.05);
+      border-radius: 24px;
+      backdrop-filter: blur(25px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+    .mic-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 0 0 auto;
+      position: relative;
+      padding: 20px 0 10px;
+      min-height: 100px;
+    }
+    .mic-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle, rgba(10,132,255,0.8), rgba(10,132,255,0.2));
+      color: white;
+      font-size: 24px;
+      box-shadow: 0 0 20px rgba(10,132,255,0.6);
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 3;
+    }
+    .mic-btn.recording {
+      background: radial-gradient(circle, rgba(255,60,60,0.9), rgba(255,60,60,0.2));
+      transform: scale(1.1);
+      box-shadow: 0 0 40px rgba(255,60,60,0.7);
+    }
+    .wave {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(10,132,255,0.15);
+      animation: pulse 2s infinite ease-out;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .mic-btn.recording ~ .wave {
+      opacity: 1;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    .status {
+      text-align: center;
+      font-size: 12px;
+      margin: 2px 0 6px;
+      opacity: 0.7;
+      min-height: 16px;
+    }
+    .chat {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 16px 20px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .chat::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+    }
+    .chat::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    .msg {
+      padding: 12px 16px;
+      border-radius: 16px;
+      margin: 6px 0;
+      max-width: 85%;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+    .msg.user { background: #0a84ff; margin-left: auto; }
+    .msg.assistant { background: rgba(255,255,255,0.08); margin-right: auto; }
+    .msg.assistant h1, .msg.assistant h2, .msg.assistant h3 {
+      margin: 8px 0 4px 0;
+      font-weight: 600;
+      color: white;
+    }
+    .msg.assistant h1 { font-size: 1.3em; }
+    .msg.assistant h2 { font-size: 1.2em; }
+    .msg.assistant h3 { font-size: 1.1em; }
+    .msg.assistant p { margin: 4px 0; line-height: 1.5; }
+    .msg.assistant ul, .msg.assistant ol {
+      margin: 6px 0;
+      padding-left: 20px;
+    }
+    .msg.assistant li {
+      margin: 2px 0;
+      line-height: 1.4;
+    }
+    .msg.assistant code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+      font-size: 0.9em;
+    }
+    .msg.assistant pre {
+      background: rgba(0,0,0,0.4);
+      padding: 8px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .msg.assistant pre code {
+      background: none;
+      padding: 0;
+    }
+    .msg.assistant strong {
+      font-weight: 600;
+      color: #0a84ff;
+    }
+    .input {
+      display: flex;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      flex: 0 0 auto;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .processing {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 4px 0;
+      opacity: 0.7;
+      font-size: 13px;
+    }
+    .processing .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #0a84ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    textarea {
+      flex: 1;
+      resize: none;
+      border: none;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-family: "Nunito";
+      font-size: 14px;
+      outline: none;
+      padding: 10px 14px;
+      border-radius: 12px;
+      min-height: 44px;
+      max-height: 120px;
+      transition: background 0.2s;
+    }
+    textarea:focus {
+      background: rgba(255,255,255,0.08);
+    }
+    button.send {
+      background: #0a84ff;
+      border: none;
+      color: white;
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      height: 44px;
+    }
+    button.send:hover:not(:disabled) {
+      background: #0a6fcc;
+      transform: translateY(-1px);
+    }
+    button.send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <span>JARVIS • LOCAL NODE</span>
+      <span>LM Studio</span>
+    </div>
+
+    <div class="mic-area">
+      <button id="mic" class="mic-btn">🎙</button>
+      <div class="wave"></div>
+    </div>
+    <div id="status" class="status">Listo.</div>
+
+    <div id="chat" class="chat"></div>
+
+    <div class="input">
+      <textarea id="input" placeholder="Escribí o dictá..."></textarea>
+      <button id="send" class="send">Enviar</button>
+    </div>
+  </div>
+
+<script>
+const BACKEND = "http://172.23.64.1:1234/v1";
+const API_ENDPOINT = "/chat/completions";
+const micBtn = document.getElementById("mic");
+
+const statusText = document.getElementById("status");
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+
+// Verificar conexión con el servidor
+async function checkServerConnection() {
+  try {
+    const res = await fetch(`${BACKEND}/v1/models`, { 
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Origin': window.location.origin
+      },
+      mode: 'cors',
+      credentials: 'omit'
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Error de conexión:', err);
+    return false;
+  }
+}
+
+let recording = false;
+let mediaRecorder;
+let chunks = [];
+let isProcessing = false;
+
+// Memoria contextual para conversación
+const CONTEXT_KEY = "jarvis_conversation_context";
+function getConversationContext() {
+  const stored = localStorage.getItem(CONTEXT_KEY);
+  return stored ? JSON.parse(stored) : [];
+}
+function saveToContext(userMessage, assistantReply) {
+  const context = getConversationContext();
+  context.push({
+    user: userMessage,
+    assistant: assistantReply,
+    timestamp: Date.now()
+  });
+  // Mantener solo las últimas 20 interacciones
+  if (context.length > 20) {
+    context.shift();
+  }
+  localStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+}
+function getContextForAPI() {
+  const context = getConversationContext();
+  // Retornar solo las últimas 5 interacciones para contexto
+  return context.slice(-5).map(c => ({
+    user: c.user,
+    assistant: c.assistant
+  }));
+}
+
+function renderMarkdown(text) {
+  // Convertir markdown básico a HTML
+  let html = text;
+  
+  // Bloques de código primero (para no procesar su contenido)
+  const codeBlocks = [];
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    const id = `CODEBLOCK_${codeBlocks.length}`;
+    codeBlocks.push(`<pre><code>${code.trim()}</code></pre>`);
+    return id;
+  });
+  
+  // Código inline `codigo`
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Títulos ###
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+  
+  // Negritas **texto**
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Procesar listas numeradas
+  const lines = html.split('\n');
+  let inOrderedList = false;
+  let inUnorderedList = false;
+  let result = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const orderedMatch = line.match(/^(\d+)\. (.+)$/);
+    const unorderedMatch = line.match(/^[-*] (.+)$/);
+    
+    if (orderedMatch) {
+      if (!inOrderedList) {
+        if (inUnorderedList) {
+          result.push('</ul>');
+          inUnorderedList = false;
+        }
+        result.push('<ol>');
+        inOrderedList = true;
+      }
+      result.push(`<li>${orderedMatch[2]}</li>`);
+    } else if (unorderedMatch) {
+      if (!inUnorderedList) {
+        if (inOrderedList) {
+          result.push('</ol>');
+          inOrderedList = false;
+        }
+        result.push('<ul>');
+        inUnorderedList = true;
+      }
+      result.push(`<li>${unorderedMatch[1]}</li>`);
+    } else {
+      if (inOrderedList) {
+        result.push('</ol>');
+        inOrderedList = false;
+      }
+      if (inUnorderedList) {
+        result.push('</ul>');
+        inUnorderedList = false;
+      }
+      
+      const trimmed = line.trim();
+      if (trimmed) {
+        // Si ya tiene tags HTML, no agregar <p>
+        if (trimmed.match(/^<[h\w]/)) {
+          result.push(trimmed);
+        } else {
+          result.push(`<p>${trimmed}</p>`);
+        }
+      } else {
+        result.push('<br>');
+      }
+    }
+  }
+  
+  // Cerrar listas abiertas
+  if (inOrderedList) result.push('</ol>');
+  if (inUnorderedList) result.push('</ul>');
+  
+  html = result.join('\n');
+  
+  // Restaurar bloques de código
+  codeBlocks.forEach((block, i) => {
+    html = html.replace(`CODEBLOCK_${i}`, block);
+  });
+  
+  return html;
+}
+
+function addMessage(text, who="assistant") {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  
+  // Si es el asistente, renderizar markdown; si es usuario, texto plano
+  if (who === "assistant") {
+    div.innerHTML = renderMarkdown(text);
+  } else {
+    div.textContent = text;
+  }
+  
+  chat.appendChild(div);
+  // Scroll suave al final
+  setTimeout(() => {
+    chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+  }, 10);
+}
+
+function showProcessing() {
+  if (isProcessing) return;
+  isProcessing = true;
+  const div = document.createElement("div");
+  div.className = "processing";
+  div.id = "processing-indicator";
+  div.innerHTML = '<div class="spinner"></div><span>Procesando...</span>';
+  chat.appendChild(div);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+}
+
+function hideProcessing() {
+  isProcessing = false;
+  const indicator = document.getElementById("processing-indicator");
+  if (indicator) indicator.remove();
+}
+
+async function sendText(text) {
+  if (!text.trim() || isProcessing) return;
+  
+  const messageText = text.trim();
+  input.value = "";
+  input.disabled = true;
+  sendBtn.disabled = true;
+  
+  // Verificar conexión antes de enviar
+  const isConnected = await checkServerConnection();
+  if (!isConnected) {
+    addMessage("❌ No se puede conectar con el servidor LM Studio en " + BACKEND, "assistant");
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+    return;
+  }
+  
+  addMessage(messageText, "user");
+  showProcessing(); 
+  
+  try {
+    const fd = new FormData();
+    fd.append("message", messageText); 
+    
+    // Enviar contexto conversacional
+    const context = getContextForAPI();
+    fd.append("context", JSON.stringify(context));
+    
+    const res = await fetch(`${BACKEND}${API_ENDPOINT}`, {
+      method: "POST",
+      body: JSON.stringify({
+        model: "openai/gpt-3.5-20b",
+        messages: [{
+          role: "user",
+          content: messageText
+        }],
+        temperature: 0.7,
+        max_tokens: 800,
+        stream: false
+      }),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Error del servidor: ${await res.text()}`);
+    }
+    
+    if (!res.ok) {
+      throw new Error(`Error del servidor: ${res.status} ${res.statusText}`);
+    } 
+    
+    const data = await res.json();
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+    
+    hideProcessing();
+    addMessage(data.choices[0].message.content, "assistant");
+    
+    // Guardar en contexto
+    saveToContext(messageText, data.reply);
+  } catch (err) {
+    hideProcessing();
+    addMessage("❌ Error al conectar con el servidor: " + err.message, "assistant");
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+sendBtn.onclick = () => sendText(input.value);
+input.onkeydown = (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendText(input.value);
+  }
+};
+
+async function toggleRecording() {
+  if (!recording) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
+      
+      // Usar formato WebM con códec Opus que es ampliamente soportado
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000
+      });
+      
+      chunks = [];
+      // Capturar datos cada segundo para mejor manejo de memoria
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        try {
+          statusText.textContent = "Transcribiendo...";
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const fd = new FormData();
+          fd.append("file", blob, "audio.webm");
+          fd.append("model", "whisper-large-v3-turbo");
+          
+          const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            body: fd,
+            headers: {
+              'Authorization': 'Bearer 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'
+            }
+          });
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(`Error de Groq STT: ${errorData.error?.message || res.statusText}`);
+          }
+          
+          const data = await res.json();
+          const transcribedText = data.text || "";
+          console.log("Transcripción de Groq:", transcribedText);
+          
+          if (!transcribedText) {
+            throw new Error("No se pudo transcribir el audio");
+          }
+          
+          input.value = transcribedText;
+          statusText.textContent = "Listo.";
+          
+          // Auto-enviar si hay texto
+          if (transcribedText.trim()) {
+            sendText(transcribedText);
+          }
+        } catch (err) {
+          console.error("fetch /stt error:", err);
+          statusText.textContent = "Error al conectar con STT";
+        }
+      };
+      chunks = [];
+      mediaRecorder.start();
+      micBtn.classList.add("recording");
+      statusText.textContent = "Escuchando...";
+      recording = true;
+    } catch (e) {
+      console.error(e);
+      statusText.textContent = "Micrófono no disponible";
+      recording = false;
+    }
+  } else {
+    try {
+      mediaRecorder.stop();
+      micBtn.classList.remove("recording");
+      recording = false;
+    } catch (e) {
+      console.error(e);
+      statusText.textContent = "Error al detener la grabación";
+      recording = false;
+      micBtn.classList.remove("recording");
+    }
+  }
+}
+
+micBtn.onclick = toggleRecording;
+</script>
+</body>
+</html>

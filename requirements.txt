@@ -1,0 +1,14 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+requests==2.31.0
+groq==0.4.1
+sounddevice==0.4.6
+scipy==1.11.4
+numpy==1.24.3
+
+# Opcionales (instalá solo si necesitás las funcionalidades)
+# Pillow==10.1.0  # Para screenshots
+# pyautogui==0.9.54  # Para automatización GUI (control de YouTube, TikTok, Instagram, Spotify, Cursor)
+# python-docx==1.1.0  # Para crear archivos .docx
+# python-pptx==0.6.23  # Para crear archivos .pptx
+
